@@ -6,7 +6,7 @@ import requests
 
 bp = Blueprint("lembrete", __name__)
 
-WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAAAxnGsh3s/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=r1jUCt6C1QUl_WO-jvY06xPMFRLhqfzPRPlYnCCakOo"
+WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAAAxnGsh3s/messages?key=########zPRPlYnCCakOo"
 
 # Mapeamento de emoji por área
 EMOJIS = {
