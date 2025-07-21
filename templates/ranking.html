@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ranking de Risco - Plataforma Farol</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    function toggleFiltro() {
+      const box = document.getElementById("filtroEstadosBox");
+      box.classList.toggle("hidden");
+    }
+  </script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  {% include 'navbar.html' %}
+
+  <h1 class="text-2xl font-bold mb-6">Ranking de Clientes em Risco</h1>
+
+  <form method="GET" class="mb-6 space-y-4">
+    <div class="flex flex-wrap gap-4 items-end">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Buscar cliente</label>
+        <input type="text" name="q" placeholder="Nome do cliente..."
+               value="{{ request.args.get('q', '') }}"
+               class="border px-4 py-2 rounded text-sm">
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="setPeriodo('ultima_semana')" class="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">Última Semana</button>
+        <button type="button" onclick="setPeriodo('semana_atual')" class="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">Semana Atual</button>
+        <button type="button" onclick="setPeriodo('ultimos_15')" class="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">Últimos 15 dias</button>
+        <button type="button" onclick="setPeriodo('ultimos_30')" class="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">Últimos 30 dias</button>
+      </div>
+
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">De</label>
+        <input type="date" name="data_inicio"
+           value="{{ request.args.get('data_inicio', inicio_semana.strftime('%Y-%m-%d')) }}"
+           class="border px-4 py-2 rounded text-sm">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Até</label>
+        <input type="date" name="data_fim"
+           value="{{ request.args.get('data_fim', fim_semana.strftime('%Y-%m-%d')) }}"
+           class="border px-4 py-2 rounded text-sm">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Estado</label>
+        <button type="button" onclick="toggleFiltro()"
+                class="bg-gray-200 px-3 py-2 rounded text-sm">
+          ⚙️ Estados
+        </button>
+      </div>
+
+      <div>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+          Aplicar
+        </button>
+      </div>
+
+      {% if ranking %}
+
+          <a href="/ranking/exportar?q={{ request.args.get('q', '') }}&data_inicio={{ request.args.get('data_inicio', '') }}&data_fim={{ request.args.get('data_fim', '') }}{% for s in request.args.getlist('estado') %}&estado={{ s }}{% endfor %}"
+             target="_blank"
+             class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+            📥 Exportar CSV
+          </a>
+
+      {% endif %}
+    </div>
+
+    <!-- Caixa de filtro de estados -->
+    <div id="filtroEstadosBox" class="mt-2 bg-white border rounded p-4 shadow max-w-md hidden">
+      <p class="text-sm font-medium text-gray-700 mb-2">Estados do cliente</p>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <label><input type="checkbox" name="estado" value="Contrato"
+          {% if 'Contrato' in request.args.getlist('estado') or not request.args.getlist('estado') %}checked{% endif %}>
+          Contrato
+        </label>
+        <label><input type="checkbox" name="estado" value="Em Risco de Churn"
+          {% if 'Em Risco de Churn' in request.args.getlist('estado') or not request.args.getlist('estado') %}checked{% endif %}>
+          Em Risco de Churn
+        </label>
+        <label>
+          <input type="checkbox" name="estado" value="Churn efetivado"
+            {% if 'Churn efetivado' in request.args.getlist('estado') or not request.args.getlist('estado') %}checked{% endif %}>
+          Churn efetivado
+        </label>
+
+      </div>
+    </div>
+  </form>
+
+  {% if ranking %}
+    <table class="w-full bg-white shadow-md rounded">
+      <thead>
+        <tr class="bg-gray-200 text-left text-sm">
+          <th class="p-4">ID</th>
+          <th class="p-4">Cliente</th>
+          <th class="p-4">Operação</th>
+          <th class="p-4">Nota</th>
+          <th class="p-4">Comentários</th>
+          <th class="p-4">MRR</th>
+          
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in ranking %}
+        <tr class="border-t text-white bg-{{ r.cor }}-500 cursor-pointer hover:brightness-95"
+            onclick="abrirModalPlano('{{ r.id }}', '{{ r.cliente }}')">
+          <td class="p-4">{{ r.id_operacao or '-' }}</td>
+          <td class="p-4 font-medium">
+            {{ r.cliente }}
+            {% if r.estado == 'Em Risco de Churn' %}
+              <span class="ml-2 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">⚠️ Risco</span>
+            {% elif r.estado == 'Churn efetivado' %}
+              <span class="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full">⛔ Churn</span>
+            {% endif %}
+
+            <a href="/clientes/{{ r.id }}/comentario" title="Ver Comentários"
+               class="ml-3 text-sm text-white underline hover:text-white/80">💬</a>
+          </td>
+          <td class="p-4">{{ r.operacao or '-' }}</td>
+          <td class="p-4">{{ r.media }}</td>
+          <td class="p-4">{{ r.qtd }}</td>
+          <td class="p-4">{{ r.mrr_formatado or 'R$ 0,00' }}</td>
+        </tr>
+
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-sm text-gray-500">Nenhum comentário registrado neste período.</p>
+  {% endif %}
+
+  <!-- Modal de Plano de Ação -->
+  <div id="modalPlano" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative max-h-[90vh] overflow-auto">
+      <h2 class="text-xl font-bold mb-4">Plano de Ação para <span id="modalClienteNome" class="text-blue-600"></span></h2>
+
+      <form id="formPlano" method="POST" action="/planos/salvar">
+        <input type="hidden" name="cliente_id" id="inputClienteId">
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Título do Plano</label>
+          <input type="text" name="titulo" required
+                 class="w-full border px-3 py-2 rounded text-sm">
+        </div>
+
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descrição geral</label>
+          <textarea name="descricao" rows="2" required class="w-full border px-3 py-2 rounded text-sm"></textarea>
+        </div>
+
+        <div id="checklistContainer" class="space-y-4 mb-4">
+          <!-- Itens do checklist serão adicionados aqui -->
+        </div>
+
+        <button type="button" onclick="adicionarChecklist()" class="text-sm text-blue-600 font-semibold mb-4">
+          + Adicionar item ao checklist
+        </button>
+
+        <div class="flex justify-end gap-4 mt-6">
+          <button type="button" onclick="fecharModal()" class="text-sm text-gray-600 hover:underline">Cancelar</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Salvar Plano</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function abrirModalPlano(clienteId, clienteNome) {
+      document.getElementById('modalPlano').classList.remove('hidden');
+      document.getElementById('modalClienteNome').textContent = clienteNome;
+      document.getElementById('inputClienteId').value = clienteId;
+      document.getElementById('checklistContainer').innerHTML = '';
+      adicionarChecklist();
+    }
+
+    function fecharModal() {
+      document.getElementById('modalPlano').classList.add('hidden');
+    }
+
+    function adicionarChecklist() {
+      const container = document.getElementById('checklistContainer');
+      const index = container.children.length;
+
+      const html = `
+        <div class="border p-3 rounded bg-gray-50 space-y-2">
+          <input type="text" name="itens[${index}][tarefa]" placeholder="Descrição da tarefa" required
+                 class="w-full border px-3 py-2 rounded text-sm">
+          <input type="text" name="itens[${index}][responsavel]" placeholder="Responsável" required
+                 class="w-full border px-3 py-2 rounded text-sm">
+          <input type="date" name="itens[${index}][prazo]" required
+                 class="w-full border px-3 py-2 rounded text-sm">
+          <select name="itens[${index}][status]" class="w-full border px-3 py-2 rounded text-sm">
+            <option value="Pendente">Pendente</option>
+            <option value="Concluído">Concluído</option>
+          </select>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+    }
+  </script>
+
+  <script>
+    function setPeriodo(tipo) {
+      const hoje = new Date();
+      let inicio, fim;
+
+      if (tipo === 'ultima_semana') {
+        const diaDaSemana = hoje.getDay();
+        const segundaAtual = new Date(hoje);
+        segundaAtual.setDate(hoje.getDate() - (diaDaSemana === 0 ? 6 : diaDaSemana - 1)); 
+        const segundaPassada = new Date(segundaAtual);
+        segundaPassada.setDate(segundaAtual.getDate() - 7);
+        const domingoPassado = new Date(segundaPassada);
+        domingoPassado.setDate(segundaPassada.getDate() + 6);
+
+        inicio = segundaPassada;
+        fim = domingoPassado;
+      }
+      else if (tipo === 'semana_atual') {
+        const diaDaSemana = hoje.getDay();
+        const segunda = new Date(hoje);
+        segunda.setDate(hoje.getDate() - (diaDaSemana === 0 ? 6 : diaDaSemana - 1));
+        const domingo = new Date(segunda);
+        domingo.setDate(segunda.getDate() + 6);
+
+        inicio = segunda;
+        fim = domingo;
+      }
+      else if (tipo === 'ultimos_15') {
+        inicio = new Date(hoje);
+        inicio.setDate(hoje.getDate() - 14);
+        fim = hoje;
+      }
+      else if (tipo === 'ultimos_30') {
+        inicio = new Date(hoje);
+        inicio.setDate(hoje.getDate() - 29);
+        fim = hoje;
+      }
+      else if (tipo === 'personalizado') {
+        return; // Personalizado não faz submit automático
+      }
+
+      document.querySelector('input[name="data_inicio"]').value = inicio.toISOString().split('T')[0];
+      document.querySelector('input[name="data_fim"]').value = fim.toISOString().split('T')[0];
+
+      if (tipo !== 'personalizado') {
+        document.querySelector('form').submit();
+      }
+    }
+
+
+
+  </script>
+
+</body>
+</html>

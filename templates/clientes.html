@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Clientes - Plataforma Farol</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    function toggleFiltros() {
+      const box = document.getElementById("filtros-box");
+      box.classList.toggle("hidden");
+    }
+  </script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  {% include 'navbar.html' %}
+
+  <main class="mt-6">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold">Clientes</h1>
+
+      {% if is_admin %}
+        <a href="/clientes/novo"
+           class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+          + Novo Cliente
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- FORMULÁRIO DE FILTRO E BUSCA -->
+    <form method="GET" class="mb-6 space-y-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <input type="text" name="q" placeholder="Buscar cliente..."
+               value="{{ request.args.get('q', '') }}"
+               class="border px-4 py-2 rounded text-sm w-full max-w-sm">
+
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+          Buscar
+        </button>
+
+        <button type="button" onclick="toggleFiltros()"
+                class="text-gray-600 hover:text-blue-600 bg-white border px-3 py-2 rounded shadow text-sm">
+          🔍 Filtros
+        </button>
+
+        <!-- BLOCO DE ORDENAÇÃO -->
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium text-gray-700">Ordenar por:</label>
+          <select name="ordenar_por" onchange="this.form.submit()" class="border px-3 py-2 rounded text-sm">
+            <option value="risco" {% if request.args.get('ordenar_por', 'risco') == 'risco' %}selected{% endif %}>⚠ Em risco primeiro</option>
+            <option value="nome" {% if request.args.get('ordenar_por') == 'nome' %}selected{% endif %}>🔤 Nome do cliente (A-Z)</option>
+            <option value="mmr_desc" {% if request.args.get('ordenar_por') == 'mmr_desc' %}selected{% endif %}>💰 MRR (maior → menor)</option>
+            <option value="mmr_asc" {% if request.args.get('ordenar_por') == 'mmr_asc' %}selected{% endif %}>💰 MRR (menor → maior)</option>
+            <option value="gp" {% if request.args.get('ordenar_por') == 'gp' %}selected{% endif %}>👥 GP (A-Z)</option>
+            <option value="cs" {% if request.args.get('ordenar_por') == 'cs' %}selected{% endif %}>👥 CS (A-Z)</option>
+            <option value="analista" {% if request.args.get('ordenar_por') == 'analista' %}selected{% endif %}>👥 Analista (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CAIXA SUSPENSA DE FILTROS -->
+      <div id="filtros-box" class="bg-white border shadow rounded-md p-4 mt-2 max-w-md hidden">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por estado</label>
+        <select name="estados" multiple class="w-full border px-3 py-2 rounded text-sm">
+          <option value="Contrato" {% if 'Contrato' in estados %}selected{% endif %}>Contrato</option>
+          <option value="Em Risco de Churn" {% if 'Em Risco de Churn' in estados %}selected{% endif %}>Em Risco de Churn</option>
+          <option value="Churn efetivado" {% if 'Churn efetivado' in estados %}selected{% endif %}>Churn efetivado</option>
+        </select>
+        <small class="text-xs text-gray-500 block mt-2">Segure Ctrl (ou Cmd) para múltiplas seleções</small>
+
+        <div class="mt-4">
+          <button type="submit"
+                  class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+            Aplicar Filtros
+          </button>
+        </div>
+      </div>
+    </form>
+
+    {% if clientes %}
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {% for c in clientes %}
+          {% set cor_estado = "bg-white" %}
+          {% if c.estado == "Churn efetivado" %}
+            {% set cor_estado = "bg-gray-100 text-gray-400" %}
+          {% endif %}
+
+          <div class="{{ cor_estado }} shadow p-4 rounded-md relative">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-3 h-3 rounded-full bg-{{ status[c.id] }}-500"></div>
+              <h3 class="text-lg font-semibold flex items-center gap-1">
+                {{ c.nome }}
+                {% if c.id_operacao %}
+                  <span class="text-xs text-gray-500 font-normal">#{{ c.id_operacao }}</span>
+                {% endif %}
+              </h3>
+
+              {% if c.estado == "Em Risco de Churn" %}
+                <span class="text-xs text-orange-500 font-bold ml-auto">⚠️ Risco</span>
+              {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-sm text-gray-700">
+              <!-- COLUNA 1 -->
+              <div>
+                <p><strong>MRR:</strong> {{ c.mmr_formatado }}</p>
+                <p><strong>Operação:</strong> {{ c.operacao or '-' }}</p>
+                <p><strong>CS:</strong> {{ c.responsaveis.cs.nome }}</p>
+                <p><strong>GP:</strong> {{ c.responsaveis.gp.nome }}</p>
+                <p><strong>Analista:</strong> {{ c.responsaveis.analista.nome }}</p>
+              </div>
+
+              <!-- COLUNA 2 -->
+              <div>
+                <p><strong>Escopo:</strong> {{ c.escopo or '-' }}</p>
+                <p><strong>Estado:</strong> {{ c.estado or 'Contrato' }}</p>
+
+                {% if c.estado in ["Contrato", "Em Risco de Churn"] %}
+                  <p><strong>Início:</strong> {{ c.inicio_formatado }}</p>
+                  <p style="{% if c.destaque_data %}color: red{% endif %}">
+                    <strong>Fim:</strong> {{ c.fim_formatado }}
+                  </p>
+                {% elif c.estado == "Churn efetivado" %}
+                <p><strong>Início:</strong> {{ c.inicio_formatado }}</p>
+                <p><strong>Fim do contrato:</strong> {{ c.fim_formatado }}</p>
+                <p><strong>Churn efetivado:</strong> {{ c.data_churn_formatada }}</p>
+                <p><strong>Motivo:</strong> {{ c.motivo_churn or "—" }}</p>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- AÇÕES -->
+            <div class="mt-4 flex gap-4 text-sm">
+              <a href="/clientes/{{ c.id }}/comentario"
+                 class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                💬 Comentários
+              </a>
+
+              <a href="/clientes/{{ c.id }}/planos"
+                 class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded">
+                📋 Planos
+              </a>
+
+              {% if is_admin %}
+                <div class="ml-auto flex gap-2">
+                  <a href="/clientes/{{ c.id }}/editar"
+                     title="Editar"
+                     class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">
+                    ✏️ Editar
+                  </a>
+                  <form method="POST" action="/clientes/{{ c.id }}/remover"
+                        onsubmit="return confirm('Tem certeza que deseja remover este cliente?')">
+                    <button type="submit"
+                            title="Remover"
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                      ✖ Remover
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-500 mt-4">Nenhum cliente encontrado.</p>
+    {% endif %}
+  </main>
+</body>
+</html>

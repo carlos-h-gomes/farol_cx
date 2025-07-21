@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Novo Cliente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen px-4 py-8">
+  <main class="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-md">
+    <a href="/clientes" class="inline-block mb-4 text-blue-600 hover:underline text-sm">&larr; Voltar para a lista de clientes</a>
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">Novo Cliente</h2>
+
+    <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-8" onsubmit="validarFormulario(event)">
+
+      <!-- Coluna esquerda -->
+      <div class="space-y-6">
+        <div class="border rounded-lg p-4 bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-600 mb-3">Dados do Cliente</h3>
+          <label class="block text-sm font-medium text-gray-700">Nome</label>
+          <input type="text" name="nome" value="{{ cliente.nome if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" required />
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">ID da Operação (Salesforce)</label>
+          <input type="text" name="id_operacao" id="id_operacao" value="{{ cliente.id_operacao if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" required />
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">Operação</label>
+          <input type="text" name="operacao" value="{{ cliente.operacao if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" required />
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">Escopo contratado</label>
+          <input type="text" name="escopo" value="{{ cliente.escopo if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" required />
+        </div>
+
+        <div class="border rounded-lg p-4 bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-600 mb-3">Status e Contrato</h3>
+          <label class="block text-sm font-medium text-gray-700">Estado</label>
+          <select name="estado" class="w-full border rounded px-3 py-2 text-sm">
+            <option value="Contrato" {% if cliente and cliente.estado == "Contrato" %}selected{% endif %}>Contrato</option>
+            <option value="Em Risco de Churn" {% if cliente and cliente.estado == "Em Risco de Churn" %}selected{% endif %}>Em Risco de Churn</option>
+            <option value="Churn efetivado" {% if cliente and cliente.estado == "Churn efetivado" %}selected{% endif %}>Churn efetivado</option>
+          </select>
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">MRR (Mensal)</label>
+          <div class="flex items-center border rounded px-3 py-2 text-sm w-full">
+            <span class="text-gray-500 mr-1">R$</span>
+            <input type="text" name="mmr"
+               value="{% if cliente and cliente.mmr %}{{ '{:,.2f}'.format(cliente.mmr|float).replace(',', 'X').replace('.', ',').replace('X', '.') }}{% else %}0,00{% endif %}"
+               class="flex-1 outline-none" required />
+
+
+
+          </div>
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">Início do Contrato</label>
+          <input type="date" name="inicio_contrato" value="{{ cliente.inicio_contrato if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" required />
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">Fim do Contrato</label>
+          <input type="date" name="fim_contrato" value="{{ cliente.fim_contrato if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" required />
+
+          </div><div id="bloco_churn" class="hidden border border-gray-200 rounded-lg p-4 bg-gray-50 mt-4"><h3 class="text-sm font-semibold text-gray-600 mb-3">Churn</h3><label class="block text-sm font-medium text-gray-700">Data do Churn</label>
+          <input type="date" name="data_churn" value="{{ cliente.data_churn if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+
+          <label class="block text-sm font-medium text-gray-700 mt-4">Motivo do Churn</label>
+          <input type="text" name="motivo_churn" value="{{ cliente.motivo_churn if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+      </div>
+
+      <!-- Coluna direita -->
+      <div class="space-y-6">
+        <div class="border rounded-lg p-4 bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-600 mb-3">Responsável CS</h3>
+          <label class="block text-sm font-medium text-gray-700">Nome</label>
+          <input type="text" name="cs_nome" value="{{ cliente.responsaveis.cs.nome if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+          <label class="block text-sm font-medium text-gray-700 mt-2">E-mail</label>
+          <input type="email" name="cs_email" value="{{ cliente.responsaveis.cs.email if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+
+        <div class="border rounded-lg p-4 bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-600 mb-3">Responsável GP</h3>
+          <label class="block text-sm font-medium text-gray-700">Nome</label>
+          <input type="text" name="gp_nome" value="{{ cliente.responsaveis.gp.nome if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+          <label class="block text-sm font-medium text-gray-700 mt-2">E-mail</label>
+          <input type="email" name="gp_email" value="{{ cliente.responsaveis.gp.email if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+
+        <div class="border rounded-lg p-4 bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-600 mb-3">Responsável Analista</h3>
+          <label class="block text-sm font-medium text-gray-700">Nome</label>
+          <input type="text" name="analista_nome" value="{{ cliente.responsaveis.analista.nome if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+          <label class="block text-sm font-medium text-gray-700 mt-2">E-mail</label>
+          <input type="email" name="analista_email" value="{{ cliente.responsaveis.analista.email if cliente else '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+      </div>
+
+      <!-- Botão abaixo das colunas -->
+      <div class="md:col-span-2">
+        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded hover:bg-blue-700">
+          Cadastrar
+        </button>
+      </div>
+
+      <!-- Modal de erro para ID duplicado -->
+      <div id="modalErroID" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow w-full max-w-md relative">
+          <h2 class="text-lg font-bold mb-4 text-red-600">ID de Operação já em uso</h2>
+          <p class="text-sm text-gray-700">Já existe um cliente com o ID informado. Por favor, corrija antes de continuar.</p>
+          <div class="flex justify-end mt-4">
+            <button onclick="fecharModalID()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm">OK</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+
+
+  </main>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+      let idOperacaoValido = true;
+      let ignorarProximaValidacao = false;
+
+      function mostrarCamposChurn() {
+        const estado = document.querySelector('select[name="estado"]').value;
+        const blocoChurn = document.getElementById("bloco_churn");
+        if (estado === "Churn efetivado") {
+          blocoChurn.classList.remove("hidden");
+        } else {
+          blocoChurn.classList.add("hidden");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        document.querySelector('select[name="estado"]').addEventListener("change", mostrarCamposChurn);
+        mostrarCamposChurn();
+      });
+
+      async function validarFormulario(event) {
+        event.preventDefault();
+
+        if (ignorarProximaValidacao) {
+          ignorarProximaValidacao = false;
+          return;
+        }
+
+        const input = document.getElementById("id_operacao");
+        const valor = input.value.trim();
+        if (!valor) {
+          event.target.submit();
+          return;
+        }
+
+        const params = new URLSearchParams({ id_operacao: valor });
+        {% if cliente %}params.append("cliente_id", "{{ cliente.id }}");{% endif %}
+
+        try {
+          const response = await fetch(`/clientes/verificar_id_operacao?${params.toString()}`);
+          const data = await response.json();
+
+          if (data.existe) {
+            idOperacaoValido = false;
+            const modal = document.getElementById("modalErroID");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            input.classList.add("border-red-500");
+            return;
+          }
+
+          idOperacaoValido = true;
+          input.classList.remove("border-red-500");
+          event.target.submit();
+        } catch (e) {
+          console.error("Erro ao verificar ID de operação:", e);
+          event.target.submit();
+        }
+      }
+
+      function fecharModalID() {
+        const modal = document.getElementById("modalErroID");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        const input = document.getElementById("id_operacao");
+        input.classList.remove("border-red-500");
+        input.focus();
+        idOperacaoValido = true;
+        ignorarProximaValidacao = true;
+      }
+    </script>
+
+</body>
+</html>

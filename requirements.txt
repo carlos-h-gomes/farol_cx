@@ -1,0 +1,6 @@
+flask
+python-dotenv
+babel
+python-dateutil
+apscheduler
+pytz

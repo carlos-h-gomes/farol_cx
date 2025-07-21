@@ -1,0 +1,15 @@
+<nav class="bg-white shadow px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+  <div class="flex items-center gap-4 text-sm">
+    <a href="/clientes" class="text-gray-700 hover:underline font-medium">👥 Clientes</a>
+    <a href="/ranking" class="text-gray-700 hover:underline font-medium">🚦 Farol</a>
+    <a href="/historico" class="text-gray-700 hover:underline font-medium">📈 Evolução</a>
+    <a href="/planos" class="text-gray-700 hover:underline font-medium">📝 Planos de Ação</a>
+    {% if is_admin %}
+      <a href="/admin" class="text-gray-700 hover:underline font-medium">⚙️ Admin</a>
+    {% endif %}
+  </div>
+  <div>
+    <span class="text-sm text-gray-600 mr-4">{{ session['user'] }}</span>
+    <a href="/logout" class="text-red-600 hover:underline text-sm">🚪 Sair</a>
+  </div>
+</nav>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Planos de Ação - Geral</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  {% include 'navbar.html' %}
+
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">Todos os Planos de Ação</h1>
+      
+    </div>
+
+    <div class="flex gap-4 mb-6">
+      <a href="/planos" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">📋 Lista</a>
+      <a href="/planos/kanban" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600">🗂️ Kanban</a>
+      <a href="/planos/timeline" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">📅 Linha do Tempo</a>
+    </div>
+
+
+    <form method="GET" class="mb-6 flex flex-wrap gap-4">
+      <div>
+        <label class="block text-sm text-gray-700">Cliente</label>
+        <select name="cliente_id" class="border px-3 py-2 rounded text-sm">
+          <option value="">Todos</option>
+          {% for c in clientes %}
+            <option value="{{ c.id }}" {% if cliente_id == c.id %}selected{% endif %}>
+              {{ c.nome }} — {{ c.operacao or 'Operação não informada' }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-gray-700">De</label>
+        <input type="date" name="data_inicio"
+               value="{{ data_inicio or '' }}"
+               class="border px-3 py-2 rounded text-sm">
+      </div>
+      <div>
+        <label class="block text-sm text-gray-700">Até</label>
+        <input type="date" name="data_fim"
+               value="{{ data_fim or '' }}"
+               class="border px-3 py-2 rounded text-sm">
+      </div>
+      <div class="self-end">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Filtrar</button>
+        <a href="#" onclick="abrirModalCriarPlano()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Novo Plano</a>
+        <button type="button" onclick="document.getElementById('modalExportar').classList.remove('hidden')"
+
+                class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+          📥 Exportar
+        </button>
+      </div>
+
+    </form>
+
+
+
+    {% if planos %}
+      <div class="space-y-6">
+        {% for plano in planos %}
+          <div class="bg-white shadow rounded-lg p-4 border border-gray-200 cursor-pointer" ondblclick="abrirDetalhesPlano('{{ plano.id_plano }}')">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="text-lg font-semibold">
+                {{ plano.titulo or "Plano de Ação" }}
+                <span class="block text-sm font-normal text-gray-500">
+                  {{ plano.cliente_nome }}
+                </span>
+              </h2>
+              <span class="text-xs text-gray-500 italic">Criado em: {{ plano.criado_em[:16].replace('T', ' às ') }}</span>
+            </div>
+
+            <p class="text-sm text-gray-700 my-2 whitespace-pre-line">{{ plano.descricao }}</p>
+
+            <h3 class="text-sm font-semibold text-gray-600">Checklist:</h3>
+            <ul class="mt-2 space-y-2">
+              {% for item in plano.itens %}
+                <li class="bg-gray-50 border rounded px-3 py-2 text-sm">
+                  <div class="flex justify-between">
+                    <span>{{ item.tarefa }}</span>
+                    
+<div class="text-xs space-y-1">
+  <select onchange="abrirModalResultado('{{ plano.cliente_id if plano.cliente_id else cliente.id }}', '{{ plano.id_plano }}', '{{ loop.index0 }}', this.value)"
+          class="px-2 py-1 rounded-full text-xs border
+          {% if item.status == 'Concluído' %}bg-green-200 text-green-800
+          {% elif item.status == 'Em Andamento' %}bg-blue-200 text-blue-800
+          {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+    <option value="Pendente" {% if item.status == 'Pendente' %}selected{% endif %}>Pendente</option>
+    <option value="Em Andamento" {% if item.status == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
+    <option value="Concluído" {% if item.status == 'Concluído' %}selected{% endif %}>Concluído</option>
+  </select>
+</div>
+
+                  </div>
+                  <p class="text-gray-500 text-sm">Responsável: {{ item.responsavel }} | Prazo: {{ item.prazo }}</p>
+                  {% if item.resultado %}
+                    <p class="text-sm text-blue-700 mt-1"><strong>Resultado:</strong> {{ item.resultado }}</p>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+
+            {% if is_admin %}
+              <form method="POST" action="/planos/excluir"
+                    onsubmit="return confirm('Deseja excluir este plano?')" class="text-right mt-3">
+                <input type="hidden" name="cliente_id" value="{{ plano.cliente_id }}">
+                <input type="hidden" name="id_plano" value="{{ plano.id_plano }}">
+                <button type="submit" class="text-red-600 text-sm hover:underline">🗑️ Excluir plano</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if total_paginas > 1 %}
+        <div class="flex justify-center mt-8 gap-4">
+          {% if pagina_atual > 1 %}
+            <a href="?page={{ pagina_atual - 1 }}"
+               class="px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">← Anterior</a>
+          {% endif %}
+
+          <span class="text-sm text-gray-600">Página {{ pagina_atual }} de {{ total_paginas }}</span>
+
+          {% if pagina_atual < total_paginas %}
+            <a href="?page={{ pagina_atual + 1 }}"
+               class="px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">Próxima →</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% else %}
+      <p class="text-sm text-gray-600">Nenhum plano encontrado neste período.</p>
+    {% endif %}
+  </div>
+
+  <!-- Modal Exportar -->
+  <div id="modalExportar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow w-full max-w-md">
+      <h2 class="text-lg font-bold mb-4">Exportar planos por período</h2>
+      <form method="GET" action="/planos/exportar">
+        <div class="mb-3">
+          <label class="block text-sm font-medium text-gray-700">Data Início</label>
+          <input type="date" name="data_inicio" required class="w-full border px-3 py-2 rounded text-sm" value="{{ data_inicio or '' }}">
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Data Fim</label>
+          <input type="date" name="data_fim" required class="w-full border px-3 py-2 rounded text-sm" value="{{ data_fim or '' }}">
+        </div>
+        <div class="flex justify-end gap-4">
+          <button type="button" onclick="document.getElementById('modalExportar').classList.add('hidden')" class="text-sm text-gray-600 hover:underline">Cancelar</button>
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Exportar CSV</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Criar Plano -->
+  <div id="modalPlano" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative max-h-[90vh] overflow-auto">
+      <h2 class="text-xl font-bold mb-4">Novo Plano de Ação</h2>
+      <form id="formPlano" method="POST" action="/planos/salvar">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+          <select name="cliente_id" required class="w-full border px-3 py-2 rounded text-sm">
+            {% for c in clientes %}
+            <option value="{{ c.id }}">{{ c.nome }} — {{ c.operacao }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Título do Plano</label>
+          <input type="text" name="titulo" required class="w-full border px-3 py-2 rounded text-sm">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descrição geral</label>
+          <textarea name="descricao" rows="2" required class="w-full border px-3 py-2 rounded text-sm"></textarea>
+        </div>
+
+        <div id="checklistContainer" class="space-y-4 mb-4"></div>
+        <button type="button" onclick="adicionarChecklist()" class="text-sm text-blue-600 font-semibold mb-4">
+          + Adicionar item ao checklist
+        </button>
+
+        <div class="flex justify-end gap-4 mt-6">
+          <button type="button" onclick="fecharModalCriarPlano()" class="text-sm text-gray-600 hover:underline">Cancelar</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Salvar Plano</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function abrirModalCriarPlano() {
+      document.getElementById('modalPlano').classList.remove('hidden');
+      document.getElementById('checklistContainer').innerHTML = '';
+      adicionarChecklist();
+    }
+    function fecharModalCriarPlano() {
+      document.getElementById('modalPlano').classList.add('hidden');
+    }
+    function adicionarChecklist() {
+      const container = document.getElementById('checklistContainer');
+      const index = container.children.length;
+
+      const html = `
+        <div class="border p-3 rounded bg-gray-50 space-y-2">
+          <input type="text" name="itens[${index}][tarefa]" placeholder="Descrição da tarefa" required class="w-full border px-3 py-2 rounded text-sm">
+          <input type="text" name="itens[${index}][responsavel]" placeholder="Responsável" required class="w-full border px-3 py-2 rounded text-sm">
+          <input type="date" name="itens[${index}][prazo]" required class="w-full border px-3 py-2 rounded text-sm">
+          <select name="itens[${index}][status]" class="w-full border px-3 py-2 rounded text-sm">
+            <option value="Pendente">Pendente</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Concluído">Concluído</option>
+          </select>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+    }
+  </script>
+
+<!-- Modal Resultado -->
+<div id="modalResultado" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 items-center justify-center">
+  <div class="bg-white p-6 rounded-lg shadow w-full max-w-md relative">
+    <h2 class="text-lg font-bold mb-4">Informe o resultado</h2>
+    <form method="POST" action="/planos/atualizar_status">
+      <input type="hidden" name="cliente_id" id="modal_cliente_id">
+      <input type="hidden" name="id_plano" id="modal_id_plano">
+      <input type="hidden" name="item_index" id="modal_item_index">
+      <input type="hidden" name="status" value="Concluído">
+      <textarea name="resultado" required placeholder="Descreva o resultado"
+                class="w-full border px-3 py-2 rounded text-sm mb-4"></textarea>
+      <div class="flex justify-end gap-4">
+        <button type="button" onclick="fecharModalResultado()" class="text-sm text-gray-600 hover:underline">Cancelar</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function abrirModalResultado(clienteId, planoId, index, status) {
+    if (status === "Concluído") {
+      document.getElementById('modalResultado').classList.remove('hidden');
+      document.getElementById('modalResultado').classList.add('flex');
+      document.getElementById('modal_cliente_id').value = clienteId;
+      document.getElementById('modal_id_plano').value = planoId;
+      document.getElementById('modal_item_index').value = index;
+    } else {
+      // Enviar diretamente o formulário para mudar para Pendente
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/planos/atualizar_status';
+
+      const inputs = [
+        ['cliente_id', clienteId],
+        ['id_plano', planoId],
+        ['item_index', index],
+        ['status', status]
+      ];
+
+      inputs.forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    }
+  }
+
+  function fecharModalResultado() {
+    document.getElementById('modalResultado').classList.add('hidden');
+    document.getElementById('modalResultado').classList.remove('flex');
+  }
+</script>
+
+  <script>
+    function abrirDetalhesPlano(id_plano) {
+      window.location.href = "/planos/" + id_plano;
+    }
+  </script>
+
+
+</body>
+</html>

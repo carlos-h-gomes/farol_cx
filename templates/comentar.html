@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Comentários do Cliente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  {% include 'navbar.html' %}
+
+  <main class="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md">
+
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">Comentários sobre {{ cliente.nome }}</h2>
+
+    <form method="POST" class="mb-6">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Área</label>
+        <select name="flag" required class="w-full border px-4 py-2 rounded text-sm">
+          <option value="">Selecione...</option>
+          <option value="CS">CS</option>
+          <option value="GP">GP</option>
+          <option value="Curadoria">Curadoria</option>
+          <option value="Suporte">Suporte</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Sentimento</label>
+        <select name="sentimento" required class="w-full border px-4 py-2 rounded text-sm">
+          <option value="">Selecione...</option>
+          <option value="5">Ótimo</option>
+          <option value="4">Bom</option>
+          <option value="3">Neutro</option>
+          <option value="2">Ruim</option>
+          <option value="1">Péssimo</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Comentário</label>
+        <textarea name="comentario" required rows="4"
+                  class="w-full border rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Último contato com:</label>
+        <input type="text" name="representante" placeholder="Nome do contato com quem falou"
+               class="w-full border rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Data do último contato</label>
+        <input type="date" name="data_contato"
+               class="w-full border rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      </div>
+
+
+      <button type="submit"
+              class="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700">
+        Salvar comentário
+      </button>
+    </form>
+
+    <hr class="my-6" />
+
+    <h3 class="text-lg font-semibold mb-4">Comentários recentes</h3>
+
+    <form method="GET" class="mb-4">
+      <div class="flex flex-wrap gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">De</label>
+          <input type="date" name="data_inicio"
+             value="{{ request.args.get('data_inicio', inicio_periodo.strftime('%Y-%m-%d')) }}"
+             class="border px-3 py-2 rounded text-sm" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Até</label>
+          <input type="date" name="data_fim"
+             value="{{ request.args.get('data_fim', fim_periodo.strftime('%Y-%m-%d')) }}"
+             class="border px-3 py-2 rounded text-sm" />
+
+          <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+          Aplicar Filtro
+            
+        </div>
+
+        <div class="flex gap-2">
+
+          <a href="/clientes/{{ cliente.id }}/comentarios/exportar?data_inicio={{ request.args.get('data_inicio') }}&data_fim={{ request.args.get('data_fim') }}"
+             target="_blank"
+             class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+            📥 Exportar CSV
+          </a>
+
+          <a href="/clientes/{{ cliente.id }}/comentarios/email"
+             class="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700">
+            📧 Enviar por E-mail
+          </a>
+        </div>
+      </div>
+    </form>
+
+
+    {% if comentarios %}
+      <div class="space-y-4">
+        {% for c in comentarios %}
+          {% include 'comentario_card.html' %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-500">Nenhum comentário registrado ainda.</p>
+    {% endif %}
+
+  </main>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Plano de Ação - Detalhado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  {% include 'navbar.html' %}
+
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold">{{ plano.titulo or 'Plano de Ação' }}</h1>
+      <span class="text-sm text-gray-500">Criado em: {{ plano.criado_em[:16].replace('T', ' às ') }}</span>
+    </div>
+
+    <p class="text-sm text-gray-700 whitespace-pre-line mb-4">{{ plano.descricao }}</p>
+
+    <form method="POST" action="/planos/{{ plano.id_plano }}/atualizar_itens">
+      <h2 class="text-lg font-semibold text-gray-700 mb-2">Checklist:</h2>
+      <div id="checklistContainer" class="space-y-4">
+        {% for item in plano.itens %}
+        <div class="border p-3 rounded bg-gray-50 space-y-2">
+          <input type="hidden" name="itens[{{ loop.index0 }}][id]" value="{{ item.id }}">
+          <input type="text" name="itens[{{ loop.index0 }}][tarefa]" value="{{ item.tarefa }}" required class="w-full border px-3 py-2 rounded text-sm">
+          <input type="text" name="itens[{{ loop.index0 }}][responsavel]" value="{{ item.responsavel }}" required class="w-full border px-3 py-2 rounded text-sm">
+          <input type="date" name="itens[{{ loop.index0 }}][prazo]" value="{{ item.prazo }}" required class="w-full border px-3 py-2 rounded text-sm">
+          <select name="itens[{{ loop.index0 }}][status]" class="w-full border px-3 py-2 rounded text-sm">
+            <option value="Pendente" {% if item.status == 'Pendente' %}selected{% endif %}>Pendente</option>
+            <option value="Em Andamento" {% if item.status == 'Em Andamento' %}selected{% endif %}>Em Andamento</option>
+            <option value="Concluído" {% if item.status == 'Concluído' %}selected{% endif %}>Concluído</option>
+          </select>
+          <textarea name="itens[{{ loop.index0 }}][resultado]" placeholder="Resultado (opcional)" class="w-full border px-3 py-2 rounded text-sm">{{ item.resultado }}</textarea>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="button" onclick="adicionarChecklist()" class="text-sm text-blue-600 font-semibold mt-2">+ Adicionar item ao checklist</button>
+
+      <div class="flex justify-end mt-6 gap-4">
+        <a href="/planos" class="text-sm text-gray-600 hover:underline">← Voltar</a>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Salvar Alterações</button>
+      </div>
+    </form>
+
+    <hr class="my-6">
+
+    <h2 class="text-lg font-semibold text-gray-700 mb-4">Comentários</h2>
+    {% for comentario in plano.comentarios %}
+      <div class="bg-gray-100 p-3 rounded mb-4">
+        <div id="texto-{{ comentario.id }}">
+          <p class="text-sm text-gray-800 whitespace-pre-line">{{ comentario.texto }}</p>
+          <div class="text-xs text-gray-500 flex justify-between mt-1">
+            <span>{{ comentario.autor }} • {{ comentario.data }}</span>
+            <div>
+              <button onclick="editarComentario('{{ comentario.id }}')" class="text-blue-600 hover:underline">Editar</button>
+              <form method="POST" action="/planos/{{ plano.id_plano }}/comentarios/remover" class="inline">
+                <input type="hidden" name="comentario_id" value="{{ comentario.id }}">
+                <button type="submit" class="text-red-600 hover:underline ml-2">Excluir</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <form id="form-{{ comentario.id }}" class="hidden" method="POST" action="/planos/{{ plano.id_plano }}/comentarios/editar">
+          <input type="hidden" name="comentario_id" value="{{ comentario.id }}">
+          <textarea name="novo_texto" class="w-full border px-3 py-2 rounded text-sm mb-2">{{ comentario.texto }}</textarea>
+          <div class="flex justify-end gap-4">
+            <button type="button" onclick="cancelarEdicao('{{ comentario.id }}')" class="text-sm text-gray-600 hover:underline">Cancelar</button>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">Salvar</button>
+          </div>
+        </form>
+      </div>
+    {% endfor %}
+
+    <form method="POST" action="/planos/{{ plano.id_plano }}/comentarios/adicionar" class="mt-4">
+      <textarea name="comentario" rows="2" required placeholder="Adicionar comentário..." class="w-full border px-3 py-2 rounded text-sm"></textarea>
+      <div class="flex justify-end mt-2">
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Comentar</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function adicionarChecklist() {
+      const container = document.getElementById('checklistContainer');
+      const index = container.children.length;
+      const html = `
+        <div class="border p-3 rounded bg-gray-50 space-y-2">
+          <input type="text" name="itens[${index}][tarefa]" placeholder="Descrição da tarefa" required class="w-full border px-3 py-2 rounded text-sm">
+          <input type="text" name="itens[${index}][responsavel]" placeholder="Responsável" required class="w-full border px-3 py-2 rounded text-sm">
+          <input type="date" name="itens[${index}][prazo]" required class="w-full border px-3 py-2 rounded text-sm">
+          <select name="itens[${index}][status]" class="w-full border px-3 py-2 rounded text-sm">
+            <option value="Pendente">Pendente</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Concluído">Concluído</option>
+          </select>
+          <textarea name="itens[${index}][resultado]" placeholder="Resultado (opcional)" class="w-full border px-3 py-2 rounded text-sm"></textarea>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function editarComentario(id) {
+      document.getElementById('texto-' + id).classList.add('hidden');
+      document.getElementById('form-' + id).classList.remove('hidden');
+    }
+
+    function cancelarEdicao(id) {
+      document.getElementById('form-' + id).classList.add('hidden');
+      document.getElementById('texto-' + id).classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

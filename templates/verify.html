@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verificar Token - Plataforma Farol</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+    <h2 class="text-2xl font-semibold mb-4 text-center">Digite o código enviado</h2>
+    <p class="text-center text-sm text-gray-500 mb-4">Enviado para <strong>{{ email }}</strong></p>
+    <form method="POST">
+      <input type="text" name="token" maxlength="6" required
+             class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-center text-lg tracking-widest" />
+      <button type="submit"
+              class="mt-6 w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700">
+        Confirmar
+      </button>
+    </form>
+  </div>
+</body>
+</html>

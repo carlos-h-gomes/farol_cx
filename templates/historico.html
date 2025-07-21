@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Evolução - Plataforma Farol</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  {% include 'navbar.html' %}
+
+  <h1 class="text-2xl font-bold mb-6">
+    Evolução {% if cliente_nome %} de {{ cliente_nome }}{% endif %}
+  </h1>
+
+  {% set hoje = now.date() %}
+  {% set inicio_semana = hoje - timedelta(days=hoje.weekday()) %}
+  {% set fim_semana = inicio_semana + timedelta(days=6) %}
+
+  <form method="GET" class="mb-6 flex flex-wrap gap-4 items-end">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Cliente</label>
+      <select name="cliente" class="border px-3 py-2 rounded text-sm">
+        <option value="">Todos</option>
+        {% for c in clientes %}
+        <option value="{{ c.id }}" {% if c.id == cliente_id %}selected{% endif %}>
+          {{ c.nome }} — {{ c.operacao }}
+        </option>
+
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Área</label>
+      <select name="area" class="border px-3 py-2 rounded text-sm">
+        <option value="">Todas</option>
+        <option value="CS" {% if area == 'CS' %}selected{% endif %}>CS</option>
+        <option value="GP" {% if area == 'GP' %}selected{% endif %}>GP</option>
+        <option value="Curadoria" {% if area == 'Curadoria' %}selected{% endif %}>Curadoria</option>
+        <option value="Suporte" {% if area == 'Suporte' %}selected{% endif %}>Suporte</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">De</label>
+      <input type="date" name="data_inicio"
+         value="{{ request.args.get('data_inicio', inicio_mes.isoformat()) }}"
+         class="border px-3 py-2 rounded text-sm">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Até</label>
+      <input type="date" name="data_fim"
+         value="{{ request.args.get('data_fim', fim_mes.isoformat()) }}"
+         class="border px-3 py-2 rounded text-sm">
+    </div>
+
+    <div>
+      <button type="submit"
+              class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+        Aplicar
+      </button>
+    </div>
+
+
+      <a href="/historico/exportar?cliente={{ cliente_id }}&area={{ area }}&data_inicio={{ request.args.get('data_inicio', inicio_semana.isoformat()) }}&data_fim={{ request.args.get('data_fim', fim_semana.isoformat()) }}"
+         target="_blank"
+         class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+        📥 Exportar CSV
+      </a>
+
+  </form>
+
+  {% if dados %}
+    <canvas id="grafico" height="100"></canvas>
+  <script>
+    const ctx = document.getElementById('grafico').getContext('2d');
+    const labels = {{ dados.keys()|list|tojson }};
+    const valores = {{ dados.values()|list|tojson }};
+
+    // Criar gradiente vertical com base no canvas
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0.0, '#16a34a'); // verde - topo
+    gradient.addColorStop(0.5, '#eab308'); // amarelo - meio
+    gradient.addColorStop(1.0, '#dc2626'); // vermelho - base
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Sentimento médio",
+          data: valores,
+          fill: false,
+          borderColor: gradient,
+          backgroundColor: gradient,
+          pointBackgroundColor: gradient,
+          pointBorderColor: gradient,
+          tension: 0.3,
+          datalabels: {
+            align: 'top',
+            anchor: 'end',
+            color: '#1f2937',
+            font: { weight: 'bold' },
+            formatter: (value) => value.toFixed(1)
+          }
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          datalabels: {
+            display: true
+          }
+        },
+        scales: {
+          x: {
+            type: 'category',
+            title: {
+              display: true,
+              text: 'Semana'
+            }
+          },
+          y: {
+            min: 1,
+            max: 5,
+            title: {
+              display: true,
+              text: 'Sentimento Médio'
+            },
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  </script>
+
+
+  {% else %}
+    <p class="text-sm text-gray-500">Nenhum dado encontrado para o período selecionado.</p>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Backup Manual - Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  {% include 'navbar.html' %}
+
+  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
+    <h3 class="text-2xl font-bold text-gray-800 mb-6">Configurações de backup</h3>
+
+    <div class="mb-6 animate-pulse border border-red-400 bg-red-100 text-red-800 text-sm font-medium px-4 py-3 rounded shadow-sm">
+      ⚠️ <strong>Atenção! Área de configurações sensíveis</strong><br>
+      Esta página controla o sistema de <strong>backup automático da plataforma</strong>.<br>
+      Alterações indevidas podem <strong>comprometer permanentemente todos os dados da aplicação</strong>.<br>
+      Caso você não seja o desenvolvedor responsável, <strong>não continue</strong>.<br>
+      Em caso de dúvidas, <strong>entre em contato com o suporte</strong>.
+    </div>
+
+
+
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="mb-4 space-y-2">
+          {% for category, message in messages %}
+            <li class="px-4 py-2 rounded bg-{{ 'red' if category == 'danger' else 'green' if category == 'success' else 'yellow' }}-100 text-{{ 'red' if category == 'danger' else 'green' if category == 'success' else 'yellow' }}-800 text-sm">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <div class="mb-8">
+      <h3 class="text-lg font-semibold text-gray-700 mb-2">📥 Download dos Arquivos</h3>
+      <ul class="list-disc ml-6 text-sm text-gray-700">
+        {% for arquivo in arquivos %}
+          <li class="mb-1">
+            <a href="{{ url_for('admin.baixar_backup', nome=arquivo) }}" class="text-blue-600 hover:underline">
+              {{ arquivo }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="text-lg font-semibold text-gray-700 mb-2">📤 Substituir Arquivo</h3>
+      <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        <input type="file" name="arquivo" accept=".json" required class="block w-full text-sm border rounded px-3 py-2" />
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+          Enviar e Substituir
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <div class="mt-10 border-t pt-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">⚙️ Ações manuais</h3>
+    <div class="flex flex-col sm:flex-row gap-4">
+      <a href="/testar_backup" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 text-sm text-center">
+        🔁 Forçar backup no GitHub
+      </a>
+      <a href="/testar_envio_backup" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800 text-sm text-center">
+        📩 Enviar backup por e-mail
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-10 border-t pt-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">🔁 Backup automático GitHub</h3>
+
+  <form method="POST" id="form_backup_github">
+    <input type="hidden" name="atualizar_backup_github" value="1" />
+
+    <label class="inline-flex items-center space-x-2">
+      <input type="checkbox" name="backup_ativo" id="backup_checkbox" class="form-checkbox h-4 w-4 text-blue-600" {% if config.backup_ativo %}checked{% endif %}>
+      <span>Ativar backup automático a cada 1h para o GitHub</span>
+    </label>
+
+    <p class="text-sm text-gray-500 mt-1">
+      Ao desativar, novos dados <strong>não serão salvos automaticamente</strong> no repositório.
+    </p>
+
+    <!-- Alerta visual -->
+    <div id="confirm_alert" class="mt-4 hidden border border-red-300 bg-red-50 text-red-700 text-sm rounded p-4">
+      <strong>Atenção:</strong> desativar o backup automático pode causar perda de dados em caso de falhas na VM.
+      <div class="mt-3 flex gap-2 justify-end">
+        <button type="button" id="cancelar_desativacao" class="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 text-sm">Cancelar</button>
+        <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm">Confirmar desativação</button>
+      </div>
+    </div>
+
+    <button type="submit" id="salvar_backup_btn" class="mt-4 bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 text-sm">
+      Atualizar configuração
+    </button>
+  </form>
+
+
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const checkbox = document.getElementById("backup_checkbox");
+        const form = document.getElementById("form_backup_github");
+        const alertBox = document.getElementById("confirm_alert");
+        const cancelarBtn = document.getElementById("cancelar_desativacao");
+        const salvarBtn = document.getElementById("salvar_backup_btn");
+
+        let estavaAtivo = checkbox.checked;
+
+        checkbox.addEventListener("change", function () {
+          if (estavaAtivo && !checkbox.checked) {
+            alertBox.classList.remove("hidden");
+            salvarBtn.classList.add("hidden");
+            checkbox.disabled = true; // evita múltiplos cliques
+          }
+        });
+
+        cancelarBtn.addEventListener("click", function () {
+          checkbox.checked = true;
+          checkbox.disabled = false;
+          alertBox.classList.add("hidden");
+          salvarBtn.classList.remove("hidden");
+        });
+      });
+    </script>
+
+
+
+  
+</body>
+</html>
